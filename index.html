@@ -1,0 +1,1129 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>🛠️ Registro de Servicios</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <!-- Remove preload and use prefetch instead -->
+    <link rel="prefetch" as="image" href="./images/default-avatar.jpg" type="image/jpeg">
+    <link rel="prefetch" as="image" href="./images/logo.png" type="image/png">
+    
+    <!-- Add default image path -->
+    <script>
+        window.DEFAULT_AVATAR_PATH = './images/default-avatar.jpg';
+    </script>
+    <!-- Add this before Firebase scripts -->
+    <script>
+        // Add these new debug functions before other scripts
+        function logAuthAction(action, success, data = null, error = null) {
+            const timestamp = new Date().toISOString();
+            if (success) {
+                console.log(`[${timestamp}] 🔐 Auth ${action} successful:`, data);
+            } else {
+                console.error(`[${timestamp}] ❌ Auth ${action} failed:`, error);
+                alert(`Error en ${action}: ${error.message || 'Error desconocido'}`);
+            }
+        }
+
+        // Add this function to validate form data
+        function validateFormData(formData, type) {
+            const requiredFields = {
+                professional: ['nombre', 'especialidad', 'provincia', 'localidad', 'direccion', 'telefono', 'email'],
+                client: ['nombre', 'provincia', 'localidad', 'direccion', 'email']
+            };
+            
+            const missing = requiredFields[type].filter(field => !formData[field]);
+            if (missing.length > 0) {
+                throw new Error(`Campos requeridos faltantes: ${missing.join(', ')}`);
+            }
+            
+            // Validate email format
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(formData.email)) {
+                throw new Error('Formato de email inválido');
+            }
+
+            return true;
+        }
+
+        // Debug function with more details
+        function debugLog(action, success, error = null, details = {}) {
+            const timestamp = new Date().toISOString();
+            const state = {
+                isDarkMode: document.documentElement.classList.contains('dark-mode'),
+                buttonText: document.getElementById('toggleMode')?.textContent,
+                localStorage: localStorage.getItem('darkMode')
+            };
+            
+            if (success) {
+                console.log(`[${timestamp}] ✅ ${action} successful`, {
+                    currentState: state,
+                    details: details
+                });
+            } else {
+                console.error(`[${timestamp}] ❌ ${action} failed:`, {
+                    error: error,
+                    currentState: state,
+                    details: details
+                });
+            }
+        }
+
+        // Improved dark mode functions
+        function initDarkMode() {
+            try {
+                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                const storedPreference = localStorage.getItem('darkMode');
+                const shouldBeDark = storedPreference === null ? prefersDark : storedPreference === 'true';
+
+                if (shouldBeDark) {
+                    enableDarkMode(false); // false means don't update localStorage
+                }
+                
+                debugLog('Dark mode initialization', true, null, {
+                    prefersDark,
+                    storedPreference,
+                    shouldBeDark
+                });
+            } catch (error) {
+                debugLog('Dark mode initialization', false, error);
+            }
+        }
+
+        function enableDarkMode(updateStorage = true) {
+            document.documentElement.classList.add('dark-mode');
+            document.body.classList.add('dark-mode');
+            const button = document.getElementById('toggleMode');
+            if (button) button.textContent = '☀️ Modo Claro';
+            if (updateStorage) localStorage.setItem('darkMode', 'true');
+        }
+
+        function disableDarkMode(updateStorage = true) {
+            document.documentElement.classList.remove('dark-mode');
+            document.body.classList.remove('dark-mode');
+            const button = document.getElementById('toggleMode');
+            if (button) button.textContent = '🌙 Modo Oscuro';
+            if (updateStorage) localStorage.setItem('darkMode', 'false');
+        }
+
+        function toggleDarkMode() {
+            try {
+                const isDarkMode = document.documentElement.classList.contains('dark-mode');
+                if (isDarkMode) {
+                    disableDarkMode();
+                } else {
+                    enableDarkMode();
+                }
+                debugLog('Dark mode toggle', true, null, { newState: !isDarkMode });
+            } catch (error) {
+                debugLog('Dark mode toggle', false, error);
+            }
+        }
+
+        // Update section and form navigation with debugging
+        function showSection(sectionId) {
+            try {
+                const section = document.getElementById(sectionId);
+                if (!section) throw new Error(`Section "${sectionId}" not found`);
+                
+                document.querySelectorAll('main > section').forEach(section => {
+                    section.classList.add('hidden');
+                });
+                section.classList.remove('hidden');
+                debugLog(`Navigation to section: ${sectionId}`, true);
+            } catch (error) {
+                debugLog(`Navigation to section: ${sectionId}`, false, error);
+            }
+        }
+
+        function showForms(sectionId) {
+            try {
+                const section = document.getElementById(sectionId);
+                if (!section) throw new Error(`Form section "${sectionId}" not found`);
+                
+                document.querySelectorAll('main > section').forEach(section => {
+                    section.classList.add('hidden');
+                });
+                section.classList.remove('hidden');
+                debugLog(`Show form: ${sectionId}`, true);
+            } catch (error) {
+                debugLog(`Show form: ${sectionId}`, false, error);
+            }
+        }
+
+        // Initialize with improved error handling
+        document.addEventListener('DOMContentLoaded', () => {
+            try {
+                initDarkMode();
+                const button = document.getElementById('toggleMode');
+                if (!button) throw new Error('Toggle mode button not found');
+                
+                // Remove old click listener if exists
+                button.replaceWith(button.cloneNode(true));
+                
+                // Add new click listener
+                document.getElementById('toggleMode').addEventListener('click', toggleDarkMode);
+                
+                debugLog('DOM Content Loaded', true);
+            } catch (error) {
+                debugLog('DOM Content Loaded', false, error);
+            }
+        });
+
+        // Add error event listener to capture global errors
+        window.addEventListener('error', function(event) {
+            console.error('Global error:', {
+                message: event.message,
+                filename: event.filename,
+                lineno: event.lineno,
+                colno: event.colno,
+                error: event.error
+            });
+        });
+
+        // Add function to toggle user menu
+        function toggleUserMenu() {
+            const dropdown = document.getElementById('userDropdown');
+            dropdown.classList.toggle('hidden');
+        }
+    </script>
+    <!-- Replace the Firebase scripts section with this -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+    <script>
+        // Add these meta tags for security
+        document.cookie = "firebase-session-cookie=1; SameSite=Strict; Secure";
+        document.cookie = "cross-site-cookie=whatever; SameSite=None; Secure";
+    </script>
+    <!-- Add this right after the existing Firebase scripts -->
+    <script>
+        // Add Firebase load check
+        window.addEventListener('load', () => {
+            if (!window.firebase) {
+                console.error('Firebase SDK not loaded!');
+                alert('Error: Firebase no se cargó correctamente. Por favor, recargue la página.');
+            }
+        });
+    </script>
+    
+    <!-- Your app script AFTER Firebase SDKs -->
+    <script src="app.js"></script>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+</head>
+<body>
+    <header class="header-container">
+        <div class="title-container">
+            <h1>🛠️ Registro y Búsqueda de Servicios</h1>
+            <button id="homeButton" onclick="showSection('bienvenida')" title="Volver al inicio">🏠</button>
+        </div>
+        <nav>
+            <ul class="menu">
+                <!-- Professional-only dropdown -->
+                <li class="dropdown hidden" id="perfilBtn">
+                    <button class="dropbtn">Mi Perfil Profesional ⌵</button>
+                    <div class="dropdown-content">
+                        <a href="#" onclick="event.preventDefault(); showSection('perfil');">Ver Perfil</a>
+                        <a href="#" onclick="event.preventDefault(); showSection('editarPerfil');">Editar Perfil</a>
+                        <a href="#" onclick="event.preventDefault(); showSection('configuracion');">Configuración</a>
+                    </div>
+                </li>
+                
+                <!-- Client-only button -->
+                <li class="hidden" id="clientProfileBtn">
+                    <button onclick="showClientProfile()">Mi Perfil Cliente</button>
+                </li>
+
+                <!-- Rest of the navigation items -->
+                <li class="notification-icon">
+                    <button onclick="toggleNotificationsPanel()" class="notification-btn" title="Notificaciones">
+                        🔔
+                        <span class="notification-badge" id="notificationCount">0</span>
+                    </button>
+                </li>
+                <li class="hidden" id="dashboardProBtn">
+                    <button onclick="showSection('dashboardProfesional')">Dashboard Pro</button>
+                </li>
+                <li class="hidden" id="dashboardClientBtn">
+                    <button onclick="showSection('dashboardCliente')">Dashboard Cliente</button>
+                </li>
+                <li>
+                    <button id="toggleMode" onclick="toggleDarkMode()">🌙 Modo Oscuro</button>
+                </li>
+                <li class="hidden" id="logoutButton">
+                    <button onclick="logout()">Cerrar Sesión</button>
+                </li>
+                <li id="registroBtn">
+                    <button onclick="showForms('registro')">Registrarse</button>
+                </li>
+                <li id="loginBtn">
+                    <button onclick="showForms('iniciarSesion')">Iniciar Sesión</button>
+                </li>
+            </ul>
+        </nav>
+    </header>
+
+    <!-- Add notifications panel after header -->
+    <div id="notificationsPanel" class="notifications-panel hidden">
+        <div class="notifications-header">
+            <h3>Notificaciones</h3>
+            <div class="notifications-actions">
+                <button onclick="archiveAllNotifications()" class="btn-archive" title="Archivar todo">
+                    📥 Archivar todo
+                </button>
+                <button onclick="toggleNotificationsPanel()" class="btn-close" title="Cerrar">✖</button>
+            </div>
+        </div>
+        <div class="notifications-groups">
+            <div class="notification-group" id="requestsNotifications">
+                <h4>📋 Solicitudes</h4>
+                <div class="notifications-list"></div>
+            </div>
+            <div class="notification-group" id="paymentsNotifications">
+                <h4>💰 Pagos</h4>
+                <div class="notifications-list"></div>
+            </div>
+            <div class="notification-group" id="messagesNotifications">
+                <h4>💬 Mensajes</h4>
+                <div class="notifications-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add this after header -->
+    <button class="sidebar-btn hidden" onclick="toggleSidebar()">☰</button>
+    <!-- Update the sidebar menu to include role-specific items -->
+    <div id="sidebar" class="hidden">
+        <div class="sidebar-header">
+            <span class="sidebar-title">Menú</span>
+            <button class="close-sidebar" onclick="toggleSidebar()">×</button>
+        </div>
+        <div class="sidebar-menu">
+            <!-- Professional-only menu items -->
+            <div class="menu-item professional-only">
+                <!-- ...existing professional menu items... -->
+            </div>
+
+            <!-- Client-only menu items -->
+            <div class="menu-item client-only">
+                <div class="menu-header" onclick="toggleSubmenu('servicios')">
+                    <span>🔍 Servicios</span>
+                    <span class="arrow">▼</span>
+                </div>
+                <div class="submenu" id="servicios-submenu">
+                    <a href="#" onclick="showSection('buscarServicios')">Buscar Servicios</a>
+                    <a href="#" onclick="showSection('misServicios')">Mis Servicios</a>
+                    <a href="#" onclick="showSection('favoritos')">Favoritos</a>
+                </div>
+            </div>
+
+            <div class="menu-item client-only">
+                <div la="menu-header" onclick="toggleSubmenu('pagos')">
+                    <span>💳 Pagos</span>
+                    <span class="arrow">▼</span>
+                </div>
+                <div class="submenu" id="pagos-submenu">
+                    <a href="#" onclick="showSection('metodoPago')">Métodos de Pago</a>
+                    <a href="#" onclick="showSection('historialPagos')">Historial de Pagos</a>
+                    <a href="#" onclick="showSection('facturas')">Facturas</a>
+                </div>
+            </div>
+
+            <div class="menu-item client-only">
+                <div class="menu-header" onclick="toggleSubmenu('cuenta')">
+                    <span>👤 Mi Cuenta</span>
+                    <span class="arrow">▼</span>
+                </div>
+                <div class="submenu" id="cuenta-submenu">
+                    <a href="#" onclick="showSection('perfil')">Ver Perfil</a>
+                    <a href="#" onclick="showSection('direcciones')">Mis Direcciones</a>
+                    <a href="#" onclick="showSection('preferencias')">Preferencias</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add backdrop for sidebar -->
+    <div id="sidebar-backdrop" onclick="toggleSidebar()"></div>
+
+    <!-- Add notifications UI after the nav section -->
+    <div id="notificationsArea" class="notifications-area hidden">
+        <div class="notifications-header">
+            <h3>Notificaciones</h3>
+            <span class="notification-count">0</span>
+        </div>
+        <div class="notifications-list">
+            <!-- Notifications will be added here dynamically -->
+        </div>
+    </div>
+
+    <main>
+        <!-- Add welcome-section class to these sections -->
+        <section id="bienvenida" class="welcome-section">
+            <div id="welcomeSection">
+                <h2>Bienvenidos a TuSolución</h2>
+                <p>En un mundo donde la tecnología y la especialización avanzan constantemente, sabemos lo difícil que puede ser encontrar al profesional adecuado para resolver problemas específicos. Nuestro objetivo es brindar una plataforma eficiente y accesible para conectar a quienes necesitan servicios con expertos capacitados en diversas áreas.</p>
+                <p>Ya seas un usuario en busca de soluciones o un profesional ofreciendo tus habilidades, acá vas a encontrar un espacio diseñado para facilitar estas conexiones de manera rápida y confiable. Queremos asegurarnos de que cada necesidad encuentre su respuesta y cada profesional tenga la oportunidad de demostrar su talento.</p>
+            </div>
+        </section>
+
+        <!-- Remove "hidden" class from these sections -->
+        <section id="comoFunciona" class="welcome-section">
+            <div id="howItWorksSection">
+                <h2>¿Cómo funciona?</h2>
+                <p>TuSolución simplifica el proceso de contratación de servicios. Regístrate, publica tu trabajo, recibe pedidos y comunícate directamente con tus clientes a través de nuestra plataforma. Mejora tu experiencia con funciones diseñadas para tu conveniencia.</p>
+            </div>
+        </section>
+
+        <section id="contacto" class="welcome-section">
+            <div id="contactSection">
+                <h2>¿Cómo contactarnos?</h2>
+                <p>Teléfono: 3764545454</p>
+                <p>Email: <a href="mailto:info@tusolucion.com">info@tusolucion.com</a></p>
+                <form id="subscribeForm">
+                    <label for="subscribeEmail">Suscríbete para recibir actualizaciones:</label>
+                    <input type="email" id="subscribeEmail" name="subscribeEmail" required>
+                    <button type="submit">Suscribirse</button>
+                </form>
+            </div>
+        </section>
+
+        <!-- Move form sections after welcome sections -->
+        <section id="registro" class="form-section hidden">
+            <h2>Registro de Usuario</h2>
+            <div la="form-container">
+                <div id="registroProfesional">
+                    <h3>👨‍🔧 Como Profesional</h3>
+                    <form id="formRegistroProfesional">
+                        <div class="form-group">
+                            <label for="nombreProfesional">Nombre:</label>
+                            <input type="text" id="nombreProfesional" name="nombreProfesional" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="especialidad">Especialidad:</label>
+                            <input type="text" id="especialidad" name="especialidad" title="Ingrese su especialidad (Ej: Plomero)" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="provincia" id="provinciaLabel">Provincia:</label>
+                            <select id="provincia" 
+                                    name="provincia" 
+                                    required 
+                                    onchange="updateLocalidades()"
+                                    aria-labelledby="provinciaLabel"
+                                    aria-required="true">
+                                <option value="">Seleccione una provincia</option>
+                                <option value="Buenos Aires">Buenos Aires</option>
+                                <option value="CABA">Ciudad Autónoma de Buenos Aires</option>
+                                <option value="Catamarca">Catamarca</option>
+                                <option value="Chaco">Chaco</option>
+                                <option value="Chubut">Chubut</option>
+                                <option value="Córdoba">Córdoba</option>
+                                <option value="Corrientes">Corrientes</option>
+                                <option value="Entre Ríos">Entre Ríos</option>
+                                <option value="Formosa">Formosa</option>
+                                <option value="Jujuy">Jujuy</option>
+                                <option value="La Pampa">La Pampa</option>
+                                <option value="La Rioja">La Rioja</option>
+                                <option value="Mendoza">Mendoza</option>
+                                <option value="Misiones">Misiones</option>
+                                <option value="Neuquén">Neuquén</option>
+                                <option value="Río Negro">Río Negro</option>
+                                <option value="Salta">Salta</option>
+                                <option value="San Juan">San Juan</option>
+                                <option value="San Luis">San Luis</option>
+                                <option value="Santa Cruz">Santa Cruz</option>
+                                <option value="Santa Fe">Santa Fe</option>
+                                <option value="Santiago del Estero">Santiago del Estero</option>
+                                <option value="Tierra del Fuego">Tierra del Fuego</option>
+                                <option value="Tucumán">Tucumán</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="localidad" id="localidadLabel">Localidad:</label>
+                            <select id="localidad" 
+                                    name="localidad" 
+                                    required
+                                    aria-labelledby="localidadLabel"
+                                    aria-required="true">
+                                <option value="">Seleccione primero una provincia</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="direccion">Dirección:</label>
+                            <input type="text" id="direccion" name="direccion" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="telefono">Teléfono:</label>
+                            <input type="tel" id="telefono" name="telefono" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="emailProfesional">Email:</label>
+                            <input type="email" id="emailProfesional" name="emailProfesional" required autocomplete="username">
+                        </div>
+                        <div class="form-group">
+                            <label for="passwordProfesional">Contraseña:</label>
+                            <input type="password" id="passwordProfesional" name="passwordProfesional" required autocomplete="current-password">
+                        </div>
+                        
+                        <!-- New professional fields -->
+                        <div class="form-group professional-fields">
+                            <label for="experiencia">Años de Experiencia:</label>
+                            <input type="number" id="experiencia" name="experiencia" min="0" required>
+                        </div>
+                        
+                        <div class="form-group professional-fields">
+                            <label for="precioBase">Precio Base por Hora (ARS):</label>
+                            <input type="number" id="precioBase" name="precioBase" min="0" required>
+                        </div>
+
+                        <!-- Update the certifications field in the registration form -->
+                        <div class="form-group professional-fields">
+                            <label for="certificaciones">Certificaciones (Opcional):</label>
+                            <textarea id="certificaciones" name="certificaciones" 
+                                      placeholder="Liste sus certificaciones relevantes. Podrá agregar más y subir documentos después."></textarea>
+                            <small class="help-text">💡 Podrá gestionar sus certificaciones con más detalle desde su perfil.</small>
+                        </div>
+
+                        <div class="form-group professional-fields">
+                            <label for="disponibilidad" id="disponibilidadLabel">Disponibilidad:</label>
+                            <select id="disponibilidad" 
+                                    name="disponibilidad" 
+                                    required
+                                    aria-labelledby="disponibilidadLabel"
+                                    aria-required="true">
+                                <option value="fulltime">Tiempo Completo</option>
+                                <option value="parttime">Medio Tiempo</option>
+                                <option value="weekends">Fines de Semana</option>
+                                <option value="oncall">Por Llamado</option>
+                            </select>
+                        </div>
+                        
+                        <button type="submit">Registrarse</button>
+                    </form>
+                </div>
+
+                <div id="registroCliente">
+                    <h3>👤 Como Cliente</h3>
+                    <form id="formRegistroCliente">
+                        <div class="form-group">
+                            <label for="nombreCliente">Nombre:</label>
+                            <input type="text" id="nombreCliente" name="nombreCliente" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="provinciaCliente" id="provinciaClienteLabel">Provincia:</label>
+                            <select id="provinciaCliente" 
+                                    name="provinciaCliente" 
+                                    required 
+                                    onchange="updateLocalidadesCliente()"
+                                    aria-labelledby="provinciaClienteLabel"
+                                    aria-required="true">
+                                <option value="">Seleccione una provincia</option>
+                                <option value="Buenos Aires">Buenos Aires</option>
+                                <option value="CABA">Ciudad Autónoma de Buenos Aires</option>
+                                <option value="Catamarca">Catamarca</option>
+                                <option value="Chaco">Chaco</option>
+                                <option value="Chubut">Chubut</option>
+                                <option value="Córdoba">Córdoba</option>
+                                <option value="Corrientes">Corrientes</option>
+                                <option value="Entre Ríos">Entre Ríos</option>
+                                <option value="Formosa">Formosa</option>
+                                <option value="Jujuy">Jujuy</option>
+                                <option value="La Pampa">La Pampa</option>
+                                <option value="La Rioja">La Rioja</option>
+                                <option value="Mendoza">Mendoza</option>
+                                <option value="Santa Fe">Santa Fe</option>
+                                <option value="Santiago del Estero">Santiago del Estero</option>
+                                <option value="Tierra del Fuego">Tierra del Fuego</option>
+                                <option value="Tucumán">Tucumán</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="localidadCliente" id="localidadClienteLabel">Localidad:</label>
+                            <select id="localidadCliente" 
+                                    name="localidadCliente" 
+                                    required
+                                    aria-labelledby="localidadClienteLabel"
+                                    aria-required="true">
+                                <option value="">Seleccione primero una provincia</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="direccionCliente">Dirección:</label>
+                            <input type="text" id="direccionCliente" name="direccionCliente" 
+                                   placeholder="Ingrese su dirección completa" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="emailCliente">Email:</label>
+                            <input type="email" id="emailCliente" name="emailCliente" required autocomplete="username">
+                        </div>
+                        <div class="form-group">
+                            <label for="passwordCliente">Contraseña:</label>
+                            <input type="password" id="passwordCliente" name="passwordCliente" required autocomplete="current-password">
+                        </div>
+                        <div class="form-group">
+                            <label for="descripcionProblema">Descripción del problema (opcional):</label>
+                            <textarea id="descripcionProblema" name="descripcionProblema"></textarea>
+                        </div>
+                        <button type="submit">Registrarse</button>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+        <section id="iniciarSesion" class="form-section hidden">
+            <h2>Iniciar Sesión</h2>
+            <div class="form-container">
+                <div id="loginProfesional">
+                    <h3>🔑 Como Profesional</h3>
+                    <form id="formLoginProfesional">
+                        <div class="form-group">
+                            <label for="loginEmailProfesional">Email:</label>
+                            <input type="email" id="loginEmailProfesional" name="loginEmailProfesional" required autocomplete="username">
+                        </div>
+                        <div class="form-group">
+                            <label for="loginPasswordProfesional">Contraseña:</label>
+                            <input type="password" id="loginPasswordProfesional" name="loginPasswordProfesional" required autocomplete="current-password">
+                        </div>
+                        <button type="submit">Iniciar Sesión</button>
+                    </form>
+                </div>
+
+                <div id="loginCliente">
+                    <h3>🔑 Como Cliente</h3>
+                    <form id="formLoginCliente">
+                        <div class="form-group">
+                            <label for="loginEmailCliente">Email:</label>
+                            <input type="email" id="loginEmailCliente" name="loginEmailCliente" required autocomplete="username">
+                        </div>
+                        <div class="form-group">
+                            <label for="loginPasswordCliente">Contraseña:</label>
+                            <input type="password" id="loginPasswordCliente" name="loginPasswordCliente" required autocomplete="current-password">
+                        </div>
+                        <button type="submit">Iniciar Sesión</button>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+        <section id="perfil" class="hidden">
+            <h2>Mi Perfil</h2>
+            <div class="profile-container">
+                <div class="profile-header">
+                    <div class="profile-avatar">
+                        <img id="avatarImage" 
+                             src="./images/default-avatar.png" 
+                             alt="Avatar del usuario" 
+                             onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'150\' height=\'150\' viewBox=\'0 0 150 150\'%3E%3Crect width=\'150\' height=\'150\' fill=\'%23f0f0f0\'/%3E%3Ctext x=\'75\' y=\'75\' font-family=\'Arial\' font-size=\'14\' fill=\'%23666\' text-anchor=\'middle\' dominant-baseline=\'middle\'%3EAvatar%3C/text%3E%3C/svg%3E'">
+                    </div>
+                    <div class="profile-info">
+                        <h3 id="profileName">Nombre</h3>
+                        <p id="profileRole">Rol</p>
+                        <!-- Add verification badge -->
+                        <div id="verificationBadge" class="verification-badge"></div>
+                    </div>
+                </div>
+                
+                <!-- Add verification status section -->
+                <div class="verification-panel">
+                    <h3>Estado de Verificación</h3>
+                    <div id="verificationStatus" class="verification-status">
+                        <div class="verification-level">
+                            <div id="currentVerificationLevel" class="level-badge"></div>
+                        </div>
+                        <div class="verification-progress">
+                            <h4>Próximo Nivel</h4>
+                            <div id="nextLevelRequirements" class="requirements-list"></div>
+                        </div>
+                    </div>
+                    <div class="documents-upload">
+                        <h4>Documentos Pendientes</h4>
+                        <ul id="pendingDocuments" class="pending-list"></ul>
+                    </div>
+                </div>
+
+                <!-- Add new sections for profile information -->
+                <div class="profile-details">
+                    <div class="info-section">
+                        <h3>Información Personal</h3>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <span class="info-label">Especialidad:</span>
+                                <span id="profileSpecialty" class="info-value">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Experiencia:</span>
+                                <span id="profileExperience" class="info-value">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Ubicación:</span>
+                                <span id="profileLocation" class="info-value">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Precio Base:</span>
+                                <span id="profileBasePrice" class="info-value">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Calificación:</span>
+                                <div class="rating-display" id="profileRating">★★★★★</div>
+                            </div>
+                        </div>
+                        <!-- Add biography section -->
+                        <div class="bio-section">
+                            <h4>Acerca de mí</h4>
+                            <p id="profileBio" class="bio-text">No hay biografía disponible</p>
+                        </div>
+                    </div>
+
+                    <!-- Add verification panel here if it's missing -->
+                    <div class="verification-panel">
+                        <h3>Estado de Verificación</h3>
+                        <div id="verificationStatus" class="verification-status">
+                            <div class="verification-level">
+                                <div id="currentVerificationLevel" class="level-badge"></div>
+                            </div>
+                            <div class="verification-progress">
+                                <h4>Próximo Nivel</h4>
+                                <div id="nextLevelRequirements" class="requirements-list"></div>
+                            </div>
+                        </div>
+                        <div class="documents-upload">
+                            <h4>Documentos Pendientes</h4>
+                            <ul id="pendingDocuments" class="pending-list"></ul>
+                        </div>
+                    </div>
+
+                    <div class="availability-viewer">
+                        <h3>Disponibilidad</h3>
+                        <div class="calendar-view">
+                            <div class="calendar-header-readonly">
+                                <button type="button" onclick="previousMonthView()" class="btn-readonly">&lt;</button>
+                                <h4 id="currentMonthYearView"></h4>
+                                <button type="button" onclick="nextMonthView()" class="btn-readonly">&gt;</button>
+                            </div>
+                            <div class="calendar-grid-readonly" id="availabilityCalendarView"></div>
+                            <div id="selectedDayInfo" class="selected-day-info hidden">
+                                <h4>Horarios del Día</h4>
+                                <div class="time-slots-readonly" id="timeSlotsView"></div>
+                            </div>
+                            <div class="calendar-legend">
+                                <span><div class="legend-color available"></div> Disponible</span>
+                                <span><div class="legend-color booked"></div> Reservado</span>
+                                <span><div class="legend-color non-working"></div> No Disponible</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="documents-section">
+                        <h3>Documentos Profesionales</h3>
+                        <div id="titlePreview" class="document-preview"></div>
+                        <div id="cvPreview" class="document-preview"></div>
+                    </div>
+
+                    <div class="certifications-viewer">
+                        <h3>Certificaciones</h3>
+                        <div id="certificationsList"></div>
+                    </div>
+
+                    <div class="reviews-section">
+                        <h3>Reseñas</h3>
+                        <div class="reviews-summary">
+                            <div class="rating-stats" id="ratingStats">
+                                <!-- Rating statistics will be loaded dynamically -->
+                            </div>
+                        </div>
+                        <div id="reviewsList" class="reviews-list">
+                            <!-- Reviews will be loaded dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- Add verification section after personal info -->
+                    <div class="verification-section">
+                        <h3>Estado de Verificación</h3>
+                        <div class="verification-status">
+                            <div class="verification-level">
+                                <span id="currentLevel">Nivel Actual: </span>
+                                <span id="verificationIcon"></span>
+                            </div>
+                            <div class="verification-progress">
+                                <h4>Requisitos para el siguiente nivel:</h4>
+                                <ul id="verificationRequirements"></ul>
+                            </div>
+                        </div>
+                        <div class="verification-actions" id="verificationActions">
+                            <!-- Action buttons will be added dynamically -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="editarPerfil" class="hidden">
+            <div class="profile-container">
+                <div class="profile-header">
+                    <div class="profile-avatar">
+                        <img id="avatarImageEdit" src="./images/default-avatar.png" alt="Avatar del usuario" onerror="handleImageError(this)">
+                        <label for="avatarInputEdit" class="btn-upload">Cambiar foto</label>
+                        <input type="file" id="avatarInputEdit" accept="image/*" class="hidden" aria-label="Seleccionar imagen de perfil">
+                    </div>
+                    <div class="profile-info">
+                        <h3 id="profileNameEdit">Nombre</h3>
+                        <!-- Remove role display for client profile -->
+                    </div>
+                </div>
+                <div class="profile-details" id="profileDetailsContainer">
+                    <!-- Dynamic content will load based on user role -->
+                </div>
+            </div>
+        </section>
+
+        <section id="configuracion" class="hidden">
+            <h2>Configuración</h2>
+            <div class="settings-container">
+                <div class="settings-group">
+                    <h3>Notificaciones</h3>
+                    <div class="setting-item">
+                        <label class="switch-label">
+                            <span>Notificaciones por Email</span>
+                            <input type="checkbox" id="emailNotifications">
+                            <span class="switch"></span>
+                        </label>
+                    </div>
+                    <div class="setting-item">
+                        <label class="switch-label">
+                            <span>Notificaciones Push</span>
+                            <input type="checkbox" id="pushNotifications">
+                            <span class="switch"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-group">
+                    <h3>Privacidad</h3>
+                    <div class="setting-item">
+                        <label class="switch-label">
+                            <span>Perfil Público</span>
+                            <input type="checkbox" id="publicProfile">
+                            <span class="switch"></span>
+                        </label>
+                    </div>
+                    <div class="setting-item">
+                        <label class="switch-label">
+                            <span>Mostrar Estado en Línea</span>
+                            <input type="checkbox" id="showOnlineStatus">
+                            <span class="switch"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-group">
+                    <h3>Preferencias de Comunicación</h3>
+                    <div class="setting-item">
+                        <label>Idioma Preferido:</label>
+                        <select id="languagePreference">
+                            <option value="es">Español</option>
+                            <option value="en">English</option>
+                            <option value="pt">Português</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="settings-group">
+                    <h3>Seguridad</h3>
+                    <div class="setting-item">
+                        <button class="btn-secondary" onclick="changePassword()">Cambiar Contraseña</button>
+                    </div>
+                    <div class="setting-item">
+                        <button class="btn-secondary" onclick="enable2FA()">Activar Autenticación de Dos Factores</button>
+                    </div>
+                </div>
+
+                <div class="settings-group">
+                    <h3>Cuenta</h3>
+                    <div class="setting-item">
+                        <button class="btn-danger" onclick="deactivateAccount()">Desactivar Cuenta</button>
+                    </div>
+                    <div class="setting-item">
+                        <button class="btn-danger" onclick="deleteAccount()">Eliminar Cuenta</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="chat" class="hidden">
+            <h2>Chat</h2>
+            <div class="chat-container">
+                <div class="chat-list">
+                    <div class="chat-search">
+                        <input type="text" id="chatSearch" placeholder="Buscar conversaciones...">
+                    </div>
+                    <div id="chatConversations">
+                        <!-- Conversations will be listed here -->
+                    </div>
+                </div>
+                <div class="chat-messages">
+                    <div id="messageHeader" class="chat-header">
+                        <h3>Seleccione una conversación</h3>
+                    </div>
+                    <div id="messageContainer" class="message-container">
+                        <!-- Messages will appear here -->
+                    </div>
+                    <div class="message-input">
+                        <textarea id="messageText" placeholder="Escriba su mensaje..." disabled></textarea>
+                        <button id="sendMessage" disabled>Enviar</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="dashboardProfesional" class="hidden">
+            <div class="dashboard-grid">
+                <div class="dashboard-card summary">
+                    <h3>Resumen de Servicios</h3>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <span class="stat-value" id="completedJobs">0</span>
+                            <span class="stat-label">Servicios Completados</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value" id="ongoingJobs">0</span>
+                            <span class="stat-label">Servicios en Curso</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value" id="rating">0.0</span>
+                            <span class="stat-label">Calificación Promedio</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dashboard-card requests">
+                    <h3>Solicitudes de Servicio</h3>
+                    <div id="serviceRequests" class="requests-list">
+                        <!-- Requests will be loaded dynamically -->
+                    </div>
+                </div>
+
+                <div class="dashboard-card history">
+                    <h3>Historial de Trabajos</h3>
+                    <div id="workHistory" class="history-list">
+                        <!-- History will be loaded dynamically -->
+                    </div>
+                </div>
+
+                <div class="dashboard-card earnings">
+                    <h3>Ganancias</h3>
+                    <div class="earnings-summary">
+                        <div class="earnings-total">
+                            <span>Total Disponible:</span>
+                            <span id="availableEarnings">$0</span>
+                        </div>
+                        <div class="earnings-pending">
+                            <span>Pendiente de Cobro:</span>
+                            <span id="pendingEarnings">$0</span>
+                        </div>
+                        <button id="withdrawEarnings" class="btn-primary">Retirar Fondos</button>
+                    </div>
+                    <div id="earningsHistory" class="earnings-list">
+                        <!-- Earnings history will be loaded dynamically -->
+                    </div>
+                </div>
+
+                <div class="dashboard-card recent-messages">
+                    <h3>Mensajes Recientes</h3>
+                    <div id="recentMessagesList" class="messages-list">
+                        <!-- Recent messages will be loaded dynamically here -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="dashboardCliente" class="hidden">
+            <div class="dashboard-grid">
+                <div class="dashboard-card summary">
+                    <h3>Mis Servicios</h3>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <span class="stat-value" id="activeServices">0</span>
+                            <span class="stat-label">Servicios Activos</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value" id="completedServices">0</span>
+                            <span class="stat-label">Servicios Completados</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value" id="totalSpent">$0</span>
+                            <span class="stat-label">Total Gastado</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dashboard-card services">
+                    <h3>Servicios Contratados</h3>
+                    <div class="services-tabs">
+                        <button class="tab-btn active" data-tab="ongoing">En Curso</button>
+                        <button class="tab-btn" data-tab="completed">Completados</button>
+                    </div>
+                    <div id="hiredServices" class="services-list">
+                        <!-- Services will be loaded dynamically -->
+                    </div>
+                </div>
+
+                <div class="dashboard-card payments">
+                    <h3>Métodos de Pago</h3>
+                    <div id="paymentMethods" class="payment-methods-list">
+                        <!-- Payment methods will be loaded dynamically -->
+                    </div>
+                    <button id="addPaymentMethod" class="btn-secondary">Agregar Método de Pago</button>
+                </div>
+
+                <div class="dashboard-card reviews">
+                    <h3>Mis Reseñas</h3>
+                    <div id="myReviews" class="reviews-list">
+                        <!-- Reviews will be loaded dynamically -->
+                    </div>
+                </div>
+
+                <!-- Add the search services section here -->
+                <div class="dashboard-card search-services">
+                    <h3>Búsqueda de Servicios</h3>
+                    <div class="search-container">
+                        <div class="search-filters">
+                            <label for="categoriaServicio">Categoría:</label>
+                            <select id="categoriaServicio" name="categoria" title="Seleccione una categoría">
+                                <option value="">Todas las categorías</option>
+                                <option value="plomeria">Plomería</option>
+                                <option value="electricidad">Electricidad</option>
+                                <option value="carpinteria">Carpintería</option>
+                                <option value="jardineria">Jardinería</option>
+                                <option value="pintura">Pintura</option>
+                                <option value="limpieza">Limpieza</option>
+                                <option value="other">Otro</option> <!-- Added "Other" option -->
+                            </select>
+                            <input type="text" id="busquedaTexto" placeholder="Buscar servicios...">
+                            <button type="button" onclick="buscarServicios()">Buscar</button>
+                            <button id="toggleAdvanced" class="btn-toggle">Filtros avanzados</button>
+                            <div class="advanced-filters">
+                                <div class="filter-group">
+                                    <label for="minRating">Calificación mínima:</label>
+                                    <select id="minRating" title="Seleccionar calificación mínima">
+                                        <option value="">Cualquiera</option>
+                                        <option value="4">4+ estrellas</option>
+                                        <option value="3">3+ estrellas</option>
+                                        <option value="2">2+ estrellas</option>
+                                    </select>
+                                </div>
+                                <div class="filter-group">
+                                    <label for="availability">Disponibilidad:</label>
+                                    <select id="availability" title="Seleccionar disponibilidad">
+                                        <option value="">Cualquiera</option>
+                                        <option value="now">Disponible ahora</option>
+                                        <option value="today">Disponible hoy</option>
+                                        <option value="week">Disponible esta semana</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="sort-controls">
+                            <label for="sortBy">Ordenar por:</label>
+                            <select id="sortBy" onchange="buscarServicios()" title="Seleccionar criterio de ordenamiento">
+                                <option value="rating">Calificación</option>
+                                <option value="reviews">Número de reseñas</option>
+                                <option value="price">Precio</option>
+                                <option value="name">Nombre</option>
+                            </select>
+                        </div>
+                        <div id="loadingSpinner" class="spinner hidden"></div>
+                        <div id="resultadosBusqueda" class="resultados-grid">
+                            <!-- Los resultados se cargarán dinámicamente aquí -->
+                        </div>
+                        <div class="pagination">
+                            <button id="prevPage" disabled>Anterior</button>
+                            <span id="currentPage">1</span>
+                            <button id="nextPage">Siguiente</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Add a section for service management -->
+        <section id="manageServices" class="hidden">
+            <h2>Gestionar Servicios</h2>
+            <div class="service-list">
+                <!-- Service listings will be dynamically loaded here -->
+            </div>
+            <button onclick="showAddServiceForm()">Agregar Servicio</button>
+        </section>
+
+        <!-- Add a section for client interaction -->
+        <section id="clientInteraction" class="hidden">
+            <h2>Interacción con Clientes</h2>
+            <div class="service-requests">
+                <!-- Service requests will be dynamically loaded here -->
+            </div>
+        </section>
+
+        <!-- Add a section for financial management -->
+        <section id="financialManagement" class="hidden">
+            <h2>Gestión Financiera</h2>
+            <div class="earnings-overview">
+                <p>Total Ganado: <span id="totalEarnings">$0</span></p>
+                <p>Pagos Pendientes: <span id="pendingPayments">$0</span></p>
+                <button onclick="withdrawEarnings()">Retirar Fondos</button>
+            </div>
+            <div class="payment-methods">
+                <h3>Métodos de Pago</h3>
+                <!-- Payment methods will be dynamically loaded here -->
+            </div>
+        </section>
+    </main>
+
+    <!-- Remove the left chat button -->
+    <!-- <button id="openChatPanel" class="open-chat-panel" onclick="toggleChatPanel()">💬</button> -->
+    <div id="chatPanel" class="chat-panel hidden">
+        <div class="chat-panel-header">
+            <h3>Chat</h3>
+            <button onclick="toggleChatPanel()">✖️</button>
+        </div>
+        <div class="chat-panel-content">
+            <!-- Chat content will be dynamically loaded here -->
+        </div>
+    </div>
+    <!-- Ensure the right chat button remains -->
+    <div id="floatingChatButton" class="floating-chat-button hidden" onclick="toggleChatWindow()">🗨️</div>
+    <div id="chatWindow" class="chat-window hidden">
+        <div class="chat-header">
+            <h3>Chat</h3>
+            <button onclick="toggleChatWindow()">✖️</button>
+        </div>
+        <div class="chat-content">
+            <!-- Chat messages will be loaded here -->
+        </div>
+        <div class="chat-input">
+            <textarea id="chatMessage" placeholder="Escriba su mensaje..."></textarea>
+            <button onclick="sendChatMessage()">Enviar</button>
+        </div>
+    </div>
+
+    <div id="ratingModal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h3>Calificar Profesional</h3>
+            <div class="rating">
+                <span class="star" data-rating="1">★</span>
+                <span class="star" data-rating="2">★</span>
+                <span class="star" data-rating="3">★</span>
+                <span class="star" data-rating="4">★</span>
+                <span class="star" data-rating="5">★</span>
+            </div>
+            <textarea id="ratingComment" placeholder="Deja un comentario (opcional)"></textarea>
+            <button onclick="submitRating()">Enviar Calificación</button>
+        </div>
+    </div>
+    <div id="toast" class="toast"></div>
+
+</body>
+</html>
